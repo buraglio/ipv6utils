@@ -107,7 +107,7 @@ func ipv4ToSynthesized(ipv4Addr string, prefix string) (string, error) {
 
 func main() {
 	// Define flags with aliases
-	prefix := flag.String("prefix", "64:ff9b::", "IPv6 prefix for synthesis. (alias: -p)")
+	prefix := flag.String("prefix", "3ffe:0::/32", "IPv6 prefix for synthesis. (alias: -p)")
 	newPrefixLength := flag.Int("new-prefix-length", 40, "New prefix length for subnet allocation. (alias: -n)")
 	outputFile := flag.String("output", "", "File to save the output subnets. (alias: -o)")
 	source := flag.String("s", "", "Source address for conversion.")
