@@ -22,7 +22,7 @@ A command-line utility for IPv6 subnet generation and IPv4/IPv6 address translat
 
 Usage:
 `./ipv6utils`
-
+```
   -k string
     	Non-well-known prefix for RFC 6052 conversion. (default "64:ff9b::")
   -l int
@@ -41,6 +41,7 @@ Usage:
     	IPv6 prefix for synthesis. (alias: -p) (default "64:ff9b::")
   -s string
     	Source address for conversion.
+```
 
 ### IPv4 → Synthesized IPv6
 
