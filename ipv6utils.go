@@ -17,6 +17,22 @@ func isNibbleAligned(prefixLength int) bool {
 	return prefixLength%4 == 0
 }
 
+// Calculate how many subnets would be generated
+func countSubnets(prefix string, newPrefixLength int) (int, error) {
+	_, ipnet, err := net.ParseCIDR(prefix)
+	if err != nil {
+		return 0, fmt.Errorf("invalid prefix: %v", err)
+	}
+
+	currentPrefixLength, _ := ipnet.Mask.Size()
+
+	if newPrefixLength <= currentPrefixLength {
+		return 0, fmt.Errorf("new prefix length must be larger than the current prefix length")
+	}
+
+	return 1 << (newPrefixLength - currentPrefixLength), nil
+}
+
 // Generate subnets from a given IPv6 prefix and new prefix length with optional limit
 func generateSubnets(prefix string, newPrefixLength int, limit int) ([]string, error) {
 	_, ipnet, err := net.ParseCIDR(prefix)
@@ -34,12 +50,15 @@ func generateSubnets(prefix string, newPrefixLength int, limit int) ([]string, e
 		return nil, fmt.Errorf("new prefix length must be larger than the current prefix length")
 	}
 
+	subnetCount := 1 << (newPrefixLength - currentPrefixLength)
+	fmt.Printf("Generating %d prefixes...\n", subnetCount)
+
 	subnets := []string{}
 	prefixIP := ipnet.IP.Mask(ipnet.Mask)
 	increment := big.NewInt(1)
 	increment.Lsh(increment, uint(128-newPrefixLength))
 
-	for i := 0; i < (1 << (newPrefixLength - currentPrefixLength)); i++ {
+	for i := 0; i < subnetCount; i++ {
 		subnets = append(subnets, fmt.Sprintf("%s/%d", prefixIP, newPrefixLength))
 		prefixIP = addBigIntToIP(prefixIP, increment)
 
@@ -107,17 +126,19 @@ func ipv4ToSynthesized(ipv4Addr string, prefix string) (string, error) {
 
 func main() {
 	// Define flags with aliases
-	prefix := flag.String("prefix", "3ffe:0::/32", "IPv6 prefix for synthesis. (alias: -p)")
+	prefix := flag.String("prefix", "64:ff9b::", "IPv6 prefix for synthesis. (alias: -p)")
 	newPrefixLength := flag.Int("new-prefix-length", 40, "New prefix length for subnet allocation. (alias: -n)")
 	outputFile := flag.String("output", "", "File to save the output subnets. (alias: -o)")
 	source := flag.String("s", "", "Source address for conversion.")
 	nonWellKnownPrefix := flag.String("k", "64:ff9b::", "Non-well-known prefix for RFC 6052 conversion.")
 	limit := flag.Int("l", 0, "Limit the number of subnets displayed.")
+	countOnly := flag.Bool("count", false, "Display only the number of generated prefixes. (alias: -c)")
 
 	// Define aliases
 	flag.StringVar(prefix, "p", "64:ff9b::", "Alias for -prefix")
 	flag.IntVar(newPrefixLength, "n", 40, "Alias for -new-prefix-length")
 	flag.StringVar(outputFile, "o", "", "Alias for -output")
+	flag.BoolVar(countOnly, "c", false, "Alias for -count")
 
 	// Parse flags
 	flag.Parse()
@@ -154,7 +175,17 @@ func main() {
 		return
 	}
 
-	// Generate subnets if no conversion is requested
+	// Handle count-only operation
+	if *countOnly {
+		count, err := countSubnets(*prefix, *newPrefixLength)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("Number of prefixes: %d\n", count)
+		return
+	}
+
+	// Generate subnets
 	subnets, err := generateSubnets(*prefix, *newPrefixLength, *limit)
 	if err != nil {
 		log.Fatal(err)

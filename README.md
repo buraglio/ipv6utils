@@ -23,6 +23,9 @@ A command-line utility for IPv6 subnet generation and IPv4/IPv6 address translat
 Usage:
 `./ipv6utils`
 ```
+  -count
+    	Display only the number of generated prefixes. (alias: -c)
+  -c	Alias for -count
   -k string
     	Non-well-known prefix for RFC 6052 conversion. (default "64:ff9b::")
   -l int
