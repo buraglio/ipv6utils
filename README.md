@@ -1,6 +1,7 @@
 # IPv6 Subnet Generator & RFC 6052 Converter
 
 A command-line utility for IPv6 subnet generation and IPv4/IPv6 address translation using RFC 6052.
+The pre-compiled binary is compiled for Apple silicon.
 
 ## 🚀 Features
 - **IPv6 Subnet Generation**  
