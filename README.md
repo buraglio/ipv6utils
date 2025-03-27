@@ -16,7 +16,8 @@ The pre-compiled binary is compiled for Apple silicon.
   - Convert an RFC 6052 IPv6 address back to IPv4.  
 - **Custom Prefix Support** (`-k`)  
   - Allows non-well-known prefixes.
-
+- **Decode MAC address from SLAAC address** (-m)
+  - Decode MAC addresses from non-privacy SLAAC addresses
 ---
 
 ## Installation
@@ -31,6 +32,8 @@ Usage:
   -count
     	Display only the number of generated prefixes. (alias: -c)
   -c	Alias for -count
+  -m string
+    	SLAAC IPv6 address to decode MAC from.
   -k string
     	Non-well-known prefix for RFC 6052 conversion. (default "64:ff9b::")
   -l int
@@ -88,3 +91,14 @@ Output:
 Output: 
 
 `Subnets saved to subnets.txt`
+
+### Decode MAC from SLAAC address (legacy)
+
+Usage Example for -m:
+
+`./ipv6utils -m 3ffe:0::0200:5eff:fe00:5325`
+
+Output: 
+
+`Decoded MAC address: 00:00:5e:00:53:25`
+
