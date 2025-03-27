@@ -1,5 +1,5 @@
 # IPv6 Utilities
-This go project is the combination of two python scripts that performed the same function. If you'd rather 
+This go project is the combination of two python scripts that performed the same function.
 
 ## Current capabilities: 
 ### IPv6 Subnet Generator & RFC 6052 Converter
