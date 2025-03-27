@@ -1,4 +1,8 @@
-# IPv6 Subnet Generator & RFC 6052 Converter
+# IPv6 Utilities
+This go project is the combination of two python scripts that performed the same function. If you'd rather 
+
+## Current capabilities: 
+### IPv6 Subnet Generator & RFC 6052 Converter
 
 A command-line utility for IPv6 subnet generation and IPv4/IPv6 address translation using RFC 6052.
 The pre-compiled binary is compiled for Apple silicon.
