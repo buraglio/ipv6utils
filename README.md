@@ -18,6 +18,8 @@ The pre-compiled binary is compiled for Apple silicon.
   - Allows non-well-known prefixes.
 - **Decode MAC address from SLAAC address** (-m)
   - Decode MAC addresses from non-privacy SLAAC addresses
+- **Decode link local addresses** (-a)
+  - Decode link local address to MAC, and MAC to link local
 ---
 
 ## Installation
@@ -29,30 +31,48 @@ The pre-compiled binary is compiled for Apple silicon.
 Usage:
 `./ipv6utils`
 ```
+  -a string
+        Alias for -local
+  -c    Alias for -count
   -count
-    	Display only the number of generated prefixes. (alias: -c)
-  -c	Alias for -count
-  -m string
-    	SLAAC IPv6 address to decode MAC from.
+        Display only the number of generated prefixes. (alias: -c)
   -k string
-    	Non-well-known prefix for RFC 6052 conversion. (default "64:ff9b::")
+        Non-well-known prefix for RFC 6052 conversion. (default "64:ff9b::")
   -l int
-    	Limit the number of subnets displayed.
+        Limit the number of subnets displayed.
+  -local string
+        Link-local MAC or IPv6 to convert. (alias: -a)
+  -m string
+        SLAAC IPv6 address to decode MAC from.
   -n int
-    	Alias for -new-prefix-length (default 40)
+        Alias for -new-prefix-length (default 40)
   -new-prefix-length int
-    	New prefix length for subnet allocation. (alias: -n) (default 40)
+        New prefix length for subnet allocation. (alias: -n) (default 40)
   -o string
-    	Alias for -output
+        Alias for -output
   -output string
-    	File to save the output subnets. (alias: -o)
+        File to save the output subnets. (alias: -o)
   -p string
-    	Alias for -prefix (default "64:ff9b::")
+        Alias for -prefix (default "64:ff9b::")
   -prefix string
-    	IPv6 prefix for synthesis. (alias: -p) (default "64:ff9b::")
+        IPv6 prefix for synthesis. (alias: -p) (default "64:ff9b::")
   -s string
-    	Source address for conversion.
+        Source address for conversion.
 ```
+
+### Link local decoder
+
+`./ipv6utils.go -local fe80::0211:22ff:fe33:4455`
+
+Output: 
+
+`MAC from link-local: 00:11:22:33:44:55`
+
+`./ipv6utils.go -local 00:11:22:33:44:55`
+
+Output: 
+
+`Link-local address: fe80::0211:22ff:fe33:4455`
 
 ### IPv4 → Synthesized IPv6
 
