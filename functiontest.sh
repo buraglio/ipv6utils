@@ -23,4 +23,10 @@ echo "Testing alias flags..."
 go run ipv6utils.go -p 3ffe:0::/32 -n 40 -l 5
 #go run ipv6utils.go -prefix 3ffe:0::/32 -new-prefix-length 40 -limit 5
 
+echo "Testing link MAC to local decoder..."
+go run ipv6utils.go -local 00:11:22:33:44:55
+
+echo "Testing link local to MAC decoder..."
+go run ipv6utils.go -local fe80::0211:22ff:fe33:4455 
+
 echo "All tests completed."
