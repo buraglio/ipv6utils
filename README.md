@@ -1,5 +1,5 @@
 # IPv6 Utilities
-This go project is the combination of some older python scripts that performed the same function, with a few more added features. Web version of this utlity can be found [https://tools.forwardingplane.net](here).
+This go project is the combination of some older python scripts that performed the same function, with a few more added features. Web version of this utlity can be found [here](https://tools.forwardingplane.net).
 
 ## Current capabilities: 
 ### IPv6 Subnet Generator & RFC 6052 Converter
