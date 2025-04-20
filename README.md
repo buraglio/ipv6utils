@@ -1,5 +1,5 @@
 # IPv6 Utilities
-This go project is the combination of two python scripts that performed the same function.
+This go project is the combination of some older python scripts that performed the same function, with a few more added features. Web version of this utlity can be found [https://tools.forwardingplane.net](here).
 
 ## Current capabilities: 
 ### IPv6 Subnet Generator & RFC 6052 Converter
@@ -7,7 +7,7 @@ This go project is the combination of two python scripts that performed the same
 A command-line utility for IPv6 subnet generation and IPv4/IPv6 address translation using RFC 6052.
 The pre-compiled binary is compiled for Apple silicon.
 
-## 🚀 Features
+## Features
 - **IPv6 Subnet Generation**  
   - Generate subnets from an IPv6 prefix.  
   - Optionally limit output using `-l` flag.
