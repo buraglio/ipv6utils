@@ -20,6 +20,9 @@ The pre-compiled binary is compiled for Apple silicon.
   - Decode MAC addresses from non-privacy SLAAC addresses
 - **Decode link local addresses** (-a)
   - Decode link local address to MAC, and MAC to link local
+- **Generate ip6.arpa DNS names from IPv6 addresses** (`-ip6.arpa IPv6`)
+  - Generate a partial reverse DNS name for use in an ip6.arpa zone file a specified prefix length (`-n`)
+  - Generate a full reverse DNS name with `-n 0`
 ---
 
 ## Installation
@@ -36,6 +39,8 @@ Usage:
   -c    Alias for -count
   -count
         Display only the number of generated prefixes. (alias: -c)
+  -ip6.arpa string
+        Generate a reverse ip6.arpa name for an IPv6 address. Uses -new-prefix-length as zone context.
   -k string
         Non-well-known prefix for RFC 6052 conversion. (default "64:ff9b::")
   -l int
@@ -122,3 +127,20 @@ Output:
 
 `Decoded MAC address: 00:00:5e:00:53:25`
 
+### Generate ip6.arpa DNS names
+
+Set prefix length to `0` for the full ip6.arpa name:
+
+`./ipv6utils -ip6.arpa 2001:db8:abcd::0211:22ff:fe33:4455 -n 0`
+
+Output:
+
+`5.5.4.4.3.3.e.f.f.f.2.2.1.1.2.0.0.0.0.0.d.c.b.a.8.b.d.0.1.0.0.2.ip6.arpa.`
+
+Set the prefix length of a DNS zone file for a partial name:
+
+`./ipv6utils -ip6.arpa 2001:db8:abcd::0211:22ff:fe33:4455 -n 56`
+
+Output:
+
+`5.5.4.4.3.3.e.f.f.f.2.2.1.1.2.0.0.0`

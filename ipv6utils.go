@@ -2,12 +2,14 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"log"
 	"math/big"
 	"net"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -165,6 +167,29 @@ func linkLocalToMAC(ipv6 string) (string, error) {
 	return fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]), nil
 }
 
+// ipv6ToArpa returns a dot-separated, reversed string of nibbles for use in constructing
+// a reverse ip6.arpa DNS record. Assumes a zone context matching the prefix and outputs
+// only the non-prefix nibbles. If the prefix is 0, the full ip6.arpa name is returned.
+func ipv6ToArpa(ipv6 string, prefixLength int) (string, error) {
+	ip := net.ParseIP(ipv6)
+	if ip == nil || ip.To16() == nil {
+		return "", fmt.Errorf("Invalid IP address: %s", ipv6)
+	}
+	if prefixLength < 0 || prefixLength > 128 {
+		return "", fmt.Errorf("Invalid prefix length: %d", prefixLength)
+	}
+	if !isNibbleAligned(prefixLength) {
+		log.Println("Warning: prefix length is not on a nibble boundary")
+	}
+	nibbles := strings.Split(hex.EncodeToString(ip.To16()), "")
+	slices.Reverse(nibbles)
+	trim := 32 - (prefixLength / 4)
+	if trim >= 0 && trim < 32 {
+		return strings.Join(nibbles[:trim], "."), nil
+	}
+	return fmt.Sprintf("%s.ip6.arpa.", strings.Join(nibbles, ".")), nil
+}
+
 func main() {
 	prefix := flag.String("prefix", "64:ff9b::", "IPv6 prefix for synthesis. (alias: -p)")
 	newPrefixLength := flag.Int("new-prefix-length", 40, "New prefix length for subnet allocation. (alias: -n)")
@@ -175,6 +200,7 @@ func main() {
 	nonWellKnownPrefix := flag.String("k", "64:ff9b::", "Non-well-known prefix for RFC 6052 conversion.")
 	limit := flag.Int("l", 0, "Limit the number of subnets displayed.")
 	countOnly := flag.Bool("count", false, "Display only the number of generated prefixes. (alias: -c)")
+	ip6arpa := flag.String("ip6.arpa", "", "Generate a reverse ip6.arpa name for an IPv6 address. Uses -new-prefix-length as zone context.")
 
 	flag.StringVar(prefix, "p", "64:ff9b::", "Alias for -prefix")
 	flag.IntVar(newPrefixLength, "n", 40, "Alias for -new-prefix-length")
@@ -234,6 +260,15 @@ func main() {
 			}
 			fmt.Println("Converted synthesized IPv6 to IPv4:", ipv4Addr)
 		}
+		return
+	}
+
+	if *ip6arpa != "" {
+		arpa, err := ipv6ToArpa(*ip6arpa, *newPrefixLength)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(arpa)
 		return
 	}
 
