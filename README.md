@@ -29,6 +29,10 @@ The pre-compiled binary is compiled for Apple silicon.
 
 `go build -o ipv6utils ip6utils.go`
 
+## Homebrew Installation
+
+`brew install https://github.com/buraglio/ipv6utils`
+
 ## Use
 
 Usage:
@@ -97,21 +101,21 @@ Output:
 
 ### Generate Subnets
 
-`./ipv6utils -p 3ffe::0::/32 -n 40 -l 5`
+`./ipv6utils -p 3fff::0::/32 -n 40 -l 5`
 
 Output:
 
 ```
-3ffe::/40
-3ffe:0:100::/40
-3ffe:0:200::/40
-3ffe:0:300::/40
-3ffe:0:400::/40
+3fff::/40
+3fff:0:100::/40
+3fff:0:200::/40
+3fff:0:300::/40
+3fff:0:400::/40
 ```
 
 ### Save subnets to a File
 
-`./ipv6utils -p 3ffe:0::/32 -n 40 -o subnets.txt`
+`./ipv6utils -p 3fff:0::/32 -n 40 -o subnets.txt`
 
 Output: 
 
@@ -121,7 +125,7 @@ Output:
 
 Usage Example for -m:
 
-`./ipv6utils -m 3ffe:0::0200:5eff:fe00:5325`
+`./ipv6utils -m 3fff:0::0200:5eff:fe00:5325`
 
 Output: 
 

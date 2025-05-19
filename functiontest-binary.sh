@@ -7,16 +7,16 @@ echo "Testing IPv6 to IPv4 conversion..."
 ./ipv6utils -s 64:ff9b::c0a8:101
 
 #echo "Testing SLAAC MAC address decoding..."
-#./ipv6utils -m 3ffe:0::0200:5eff:fe00:5325
+#./ipv6utils -m 3fff:0::0200:5eff:fe00:5325
 
 echo "Testing subnet generation..."
-./ipv6utils -p 3ffe:0::/32 -n 40 -l 5
+./ipv6utils -p 3fff:0::/32 -n 40 -l 5
 
 echo "Testing prefix count..."
-./ipv6utils -p 3ffe:0::/32 -n 40 -c
+./ipv6utils -p 3fff:0::/32 -n 40 -c
 
 echo "Testing output to file..."
-./ipv6utils -p 3ffe:0::/32 -n 36 -o subnets.txt
+./ipv6utils -p 3fff:0::/32 -n 36 -o subnets.txt
 cat subnets.txt
 
 echo "Testing link MAC to local decoder..."
@@ -26,9 +26,14 @@ echo "Testing link local to MAC decoder..."
 ./ipv6utils -local fe80::0211:22ff:fe33:4455
 
 echo "Testing alias flags..."
-./ipv6utils -p 3ffe:0::/32 -n 40 -l 5
-./ipv6utils -prefix 3ffe:0::/32 -new-prefix-length 40 -l 5
+./ipv6utils -p 3fff:0::/32 -n 40 -l 5
+./ipv6utils -prefix 3fff:0::/32 -new-prefix-length 40 -l 5
 ./ipv6utils -a fe80::0211:22ff:fe33:4455
 
+echo "Testing DNS PTR generation on /56 boundary..."
+./ipv6utils -ip6.arpa 3fff:0:abcd::0211:22ff:fe33:4455 -n 56
+
+echo "Testing DNS PTR generation..."
+./ipv6utils -ip6.arpa 3fff:0:abcd::0211:22ff:fe33:4455 -n 0
 
 echo "All tests completed."
