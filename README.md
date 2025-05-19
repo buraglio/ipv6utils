@@ -31,7 +31,9 @@ The pre-compiled binary is compiled for Apple silicon.
 
 ## Homebrew Installation
 
-`brew install https://github.com/buraglio/ipv6utils`
+`brew tap buraglio/ipv6utils`
+
+`brew install buraglio/ipv6utils`
 
 ## Use
 
