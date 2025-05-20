@@ -27,13 +27,19 @@ The pre-compiled binary is compiled for Apple silicon.
 
 ## Installation
 
+This should build on any system that can run golang, but has really only been tested on MacOS and Linux.
+
+`git clone https://github.com/buraglio/ipv6utils.git`
+`cd ipv6utils`
 `go build -o ipv6utils ip6utils.go`
 
-## Homebrew Installation
+Move binary to wherever you want it to reside within your path, or reference it via a shell alias. 
+
+## Homebrew Installation (MacOS)
 
 `brew tap buraglio/ipv6utils`
 
-`brew install buraglio/ipv6utils`
+`brew install ipv6utils`
 
 ## Use
 
