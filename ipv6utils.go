@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSD-3-Clause-LBNL
+// Copyright (C) buraglio@forwardingplane.net
+
 package main
 
 import (
