@@ -193,6 +193,261 @@ func ipv6ToArpa(ipv6 string, prefixLength int) (string, error) {
 	return fmt.Sprintf("%s.ip6.arpa.", strings.Join(nibbles, ".")), nil
 }
 
+// parseIPv6WithOptionalPrefix splits an input string into an IPv6 address and optional prefix length.
+// Returns prefix length of -1 when no prefix is provided.
+func parseIPv6WithOptionalPrefix(input string) (net.IP, int, error) {
+	if input == "" {
+		return nil, -1, fmt.Errorf("empty input")
+	}
+
+	addr := input
+	prefixLen := -1
+
+	if idx := strings.LastIndex(input, "/"); idx != -1 {
+		addr = input[:idx]
+		var pfx int
+		n, err := fmt.Sscanf(input[idx+1:], "%d", &pfx)
+		if err != nil || n != 1 {
+			return nil, -1, fmt.Errorf("invalid prefix length: %s", input[idx+1:])
+		}
+		if pfx < 0 || pfx > 128 {
+			return nil, -1, fmt.Errorf("prefix length must be between 0 and 128, got %d", pfx)
+		}
+		prefixLen = pfx
+	}
+
+	if !strings.Contains(addr, ":") {
+		return nil, -1, fmt.Errorf("not an IPv6 address: %s", addr)
+	}
+
+	ip := net.ParseIP(addr)
+	if ip == nil {
+		return nil, -1, fmt.Errorf("invalid IPv6 address: %s", addr)
+	}
+	ip = ip.To16()
+	if ip == nil {
+		return nil, -1, fmt.Errorf("invalid IPv6 address: %s", addr)
+	}
+
+	return ip, prefixLen, nil
+}
+
+// expandIPv6 returns the fully expanded 8-group, zero-padded IPv6 address.
+func expandIPv6(ip net.IP) string {
+	b := ip.To16()
+	return fmt.Sprintf("%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
+		b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7],
+		b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15])
+}
+
+// compressIPv6 returns the RFC 5952 canonical compressed form.
+func compressIPv6(ip net.IP) string {
+	return ip.String()
+}
+
+// uppercaseIPv6 returns the compressed form in uppercase.
+func uppercaseIPv6(ip net.IP) string {
+	return strings.ToUpper(ip.String())
+}
+
+// urlIPv6 returns the address in URL bracket notation.
+func urlIPv6(ip net.IP) string {
+	return fmt.Sprintf("[%s]", ip.String())
+}
+
+// dottedIPv6 returns each nibble of the address separated by dots.
+func dottedIPv6(ip net.IP) string {
+	nibbles := strings.Split(hex.EncodeToString(ip.To16()), "")
+	return strings.Join(nibbles, ".")
+}
+
+// binaryIPv6 returns the address as 8 colon-separated 16-bit binary groups.
+func binaryIPv6(ip net.IP) string {
+	b := ip.To16()
+	groups := make([]string, 8)
+	for i := 0; i < 8; i++ {
+		val := uint16(b[i*2])<<8 | uint16(b[i*2+1])
+		groups[i] = fmt.Sprintf("%016b", val)
+	}
+	return strings.Join(groups, ":")
+}
+
+// classifyIPv6 returns a human-readable string describing the address type.
+func classifyIPv6(ip net.IP) string {
+	b := ip.To16()
+
+	// Unspecified (::)
+	if ip.Equal(net.IPv6unspecified) {
+		return "Unspecified (::)"
+	}
+	// Loopback (::1)
+	if ip.Equal(net.IPv6loopback) {
+		return "Loopback (::1)"
+	}
+	// IPv4-Mapped (::ffff:0:0/96)
+	allZero := true
+	for i := 0; i < 10; i++ {
+		if b[i] != 0 {
+			allZero = false
+			break
+		}
+	}
+	if allZero && b[10] == 0xff && b[11] == 0xff {
+		return "IPv4-Mapped (::ffff:0:0/96)"
+	}
+	// NAT64 Well-Known Prefix (64:ff9b::/96)
+	if b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xff && b[3] == 0x9b &&
+		b[4] == 0x00 && b[5] == 0x00 && b[6] == 0x00 && b[7] == 0x00 &&
+		b[8] == 0x00 && b[9] == 0x00 && b[10] == 0x00 && b[11] == 0x00 {
+		return "NAT64 Well-Known Prefix (64:ff9b::/96)"
+	}
+	// NAT64 Network-Specific (64:ff9b:1::/48)
+	if b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xff && b[3] == 0x9b &&
+		b[4] == 0x00 && b[5] == 0x01 {
+		return "NAT64 Network-Specific (64:ff9b:1::/48)"
+	}
+	// Discard-Only (100::/64)
+	if b[0] == 0x01 && b[1] == 0x00 &&
+		b[2] == 0x00 && b[3] == 0x00 && b[4] == 0x00 && b[5] == 0x00 &&
+		b[6] == 0x00 && b[7] == 0x00 {
+		return "Discard-Only (100::/64)"
+	}
+	// Teredo (2001:0000::/32)
+	if b[0] == 0x20 && b[1] == 0x01 && b[2] == 0x00 && b[3] == 0x00 {
+		return "Teredo (2001:0000::/32)"
+	}
+	// Documentation (2001:db8::/32)
+	if b[0] == 0x20 && b[1] == 0x01 && b[2] == 0x0d && b[3] == 0xb8 {
+		return "Documentation (2001:db8::/32)"
+	}
+	// 6to4 (2002::/16)
+	if b[0] == 0x20 && b[1] == 0x02 {
+		return "6to4 (2002::/16)"
+	}
+	// Documentation (3fff::/20) per RFC 9637
+	if b[0] == 0x3f && b[1] == 0xff && b[2]&0xf0 == 0x00 {
+		return "Documentation (3fff::/20)"
+	}
+	// Unique Local Address (fc00::/7)
+	if b[0]&0xfe == 0xfc {
+		return "Unique Local Address (ULA, fc00::/7)"
+	}
+	// Link-Local (fe80::/10)
+	if b[0] == 0xfe && b[1]&0xc0 == 0x80 {
+		return "Link-Local (fe80::/10)"
+	}
+	// Multicast (ff00::/8) with scope
+	if b[0] == 0xff {
+		scope := b[1] & 0x0f
+		scopeStr := ""
+		switch scope {
+		case 0x01:
+			scopeStr = "Interface-Local"
+		case 0x02:
+			scopeStr = "Link-Local"
+		case 0x04:
+			scopeStr = "Admin-Local"
+		case 0x05:
+			scopeStr = "Site-Local"
+		case 0x08:
+			scopeStr = "Organization-Local"
+		case 0x0e:
+			scopeStr = "Global"
+		default:
+			scopeStr = fmt.Sprintf("Unknown (0x%02x)", scope)
+		}
+		return fmt.Sprintf("Multicast (ff00::/8), Scope: %s", scopeStr)
+	}
+	// Global Unicast (2000::/3)
+	if b[0]&0xe0 == 0x20 {
+		return "Global Unicast (2000::/3)"
+	}
+
+	return "Reserved / Unknown"
+}
+
+// compressionPermutations returns all valid :: abbreviations for consecutive zero groups of length >= 2.
+func compressionPermutations(ip net.IP) []string {
+	b := ip.To16()
+	groups := make([]string, 8)
+	for i := 0; i < 8; i++ {
+		groups[i] = fmt.Sprintf("%x", uint16(b[i*2])<<8|uint16(b[i*2+1]))
+	}
+
+	var results []string
+	for start := 0; start < 8; start++ {
+		if groups[start] != "0" {
+			continue
+		}
+		for end := start + 2; end <= 8; end++ {
+			if groups[end-1] != "0" {
+				break
+			}
+			left := groups[:start]
+			right := groups[end:]
+			var s string
+			switch {
+			case start == 0 && end == 8:
+				s = "::"
+			case start == 0:
+				s = "::" + strings.Join(right, ":")
+			case end == 8:
+				s = strings.Join(left, ":") + "::"
+			default:
+				s = strings.Join(left, ":") + "::" + strings.Join(right, ":")
+			}
+			results = append(results, s)
+		}
+	}
+
+	// Deduplicate
+	seen := map[string]bool{}
+	var unique []string
+	for _, r := range results {
+		if !seen[r] {
+			seen[r] = true
+			unique = append(unique, r)
+		}
+	}
+	return unique
+}
+
+// formatIPv6 parses an IPv6 address and prints all format representations.
+func formatIPv6(input string) {
+	ip, prefixLen, err := parseIPv6WithOptionalPrefix(input)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	suffix := ""
+	if prefixLen >= 0 {
+		suffix = fmt.Sprintf("/%d", prefixLen)
+	}
+
+	fmt.Printf("%-16s%s%s\n", "Expanded:", expandIPv6(ip), suffix)
+	fmt.Printf("%-16s%s%s\n", "Compressed:", compressIPv6(ip), suffix)
+	fmt.Printf("%-16s%s\n", "Uppercase:", uppercaseIPv6(ip))
+	fmt.Printf("%-16s%s\n", "URL format:", urlIPv6(ip))
+	fmt.Printf("%-16s%s\n", "Dotted:", dottedIPv6(ip))
+	fmt.Printf("%-16s%s\n", "Binary:", binaryIPv6(ip))
+
+	arpa, err := ipv6ToArpa(ip.String(), 0)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("%-16s%s\n", "Reverse DNS:", arpa)
+	fmt.Printf("%-16s%s\n", "Address Type:", classifyIPv6(ip))
+
+	perms := compressionPermutations(ip)
+	if len(perms) > 0 {
+		fmt.Println()
+		fmt.Println("Compression permutations:")
+		for _, p := range perms {
+			fmt.Printf("  %s\n", p)
+		}
+	}
+}
+
 func main() {
 	prefix := flag.String("prefix", "64:ff9b::", "IPv6 prefix for synthesis. (alias: -p)")
 	newPrefixLength := flag.Int("new-prefix-length", 40, "New prefix length for subnet allocation. (alias: -n)")
@@ -204,12 +459,14 @@ func main() {
 	limit := flag.Int("l", 0, "Limit the number of subnets displayed.")
 	countOnly := flag.Bool("count", false, "Display only the number of generated prefixes. (alias: -c)")
 	ip6arpa := flag.String("ip6.arpa", "", "Generate a reverse ip6.arpa name for an IPv6 address. Uses -new-prefix-length as zone context.")
+	format := flag.String("format", "", "Display all format representations of an IPv6 address. (alias: -f)")
 
 	flag.StringVar(prefix, "p", "64:ff9b::", "Alias for -prefix")
 	flag.IntVar(newPrefixLength, "n", 40, "Alias for -new-prefix-length")
 	flag.StringVar(outputFile, "o", "", "Alias for -output")
 	flag.BoolVar(countOnly, "c", false, "Alias for -count")
 	flag.StringVar(linkLocal, "a", "", "Alias for -local")
+	flag.StringVar(format, "f", "", "Alias for -format")
 
 	flag.Parse()
 
@@ -217,6 +474,11 @@ func main() {
 		fmt.Println("Usage:")
 		flag.PrintDefaults()
 		os.Exit(1)
+	}
+
+	if *format != "" {
+		formatIPv6(*format)
+		return
 	}
 
 	if *macInput != "" {
