@@ -23,6 +23,10 @@ The pre-compiled binary is compiled for Apple silicon.
 - **Generate ip6.arpa DNS names from IPv6 addresses** (`-ip6.arpa IPv6`)
   - Generate a partial reverse DNS name for use in an ip6.arpa zone file a specified prefix length (`-n`)
   - Generate a full reverse DNS name with `-n 0`
+- **Display all IPv6 address formats** (`-f` / `-format`)
+  - Expanded, compressed (RFC 5952), uppercase, URL bracket notation, dotted nibble, binary
+  - Reverse DNS (ip6.arpa) and address type classification
+  - All valid `::` compression permutations
 ---
 
 ## Installation
@@ -50,9 +54,13 @@ Usage:
 ```
   -a string
         Alias for -local
+  -f string
+        Alias for -format
   -c    Alias for -count
   -count
         Display only the number of generated prefixes. (alias: -c)
+  -format string
+        Display all format representations of an IPv6 address. (alias: -f)
   -ip6.arpa string
         Generate a reverse ip6.arpa name for an IPv6 address. Uses -new-prefix-length as zone context.
   -k string
@@ -158,3 +166,38 @@ Set the prefix length of a DNS zone file for a partial name:
 Output:
 
 `5.5.4.4.3.3.e.f.f.f.2.2.1.1.2.0.0.0`
+
+### Display all IPv6 address formats
+
+`./ipv6utils -f 2001:db8::1`
+
+Output:
+
+```
+Expanded:       2001:0db8:0000:0000:0000:0000:0000:0001
+Compressed:     2001:db8::1
+Uppercase:      2001:DB8::1
+URL format:     [2001:db8::1]
+Dotted:         2.0.0.1.0.d.b.8.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1
+Binary:         0010000000000001:0000110110111000:0000000000000000:0000000000000000:0000000000000000:0000000000000000:0000000000000000:0000000000000001
+Reverse DNS:    1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.
+Address Type:   Documentation (2001:db8::/32)
+
+Compression permutations:
+  2001:db8::0:0:0:1
+  2001:db8::0:0:1
+  2001:db8::0:1
+  2001:db8::1
+  2001:db8:0::0:0:1
+  2001:db8:0::0:1
+  2001:db8:0::1
+  2001:db8:0:0::0:1
+  2001:db8:0:0::1
+  2001:db8:0:0:0::1
+```
+
+With a prefix length:
+
+`./ipv6utils -f 2001:db8::1/48`
+
+Output appends `/48` to the Expanded and Compressed lines.

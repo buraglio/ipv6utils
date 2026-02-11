@@ -35,4 +35,13 @@ go run ipv6utils.go -ip6.arpa 3fff:0:abcd::0211:22ff:fe33:4455 -n 56
 echo "Testing DNS PTR generation..."
 go run ipv6utils.go -ip6.arpa 3fff:0:abcd::0211:22ff:fe33:4455 -n 0
 
+echo "Testing IPv6 format display..."
+go run ipv6utils.go -f 2001:db8::1
+
+echo "Testing IPv6 format display with prefix..."
+go run ipv6utils.go -format 2001:db8::1/48
+
+echo "Testing IPv6 format display for loopback..."
+go run ipv6utils.go -f ::1
+
 echo "All tests completed."

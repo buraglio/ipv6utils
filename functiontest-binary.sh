@@ -36,4 +36,13 @@ echo "Testing DNS PTR generation on /56 boundary..."
 echo "Testing DNS PTR generation..."
 ./ipv6utils -ip6.arpa 3fff:0:abcd::0211:22ff:fe33:4455 -n 0
 
+echo "Testing IPv6 format display..."
+./ipv6utils -f 2001:db8::1
+
+echo "Testing IPv6 format display with prefix..."
+./ipv6utils -format 2001:db8::1/48
+
+echo "Testing IPv6 format display for loopback..."
+./ipv6utils -f ::1
+
 echo "All tests completed."
