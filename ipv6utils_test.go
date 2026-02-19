@@ -6,6 +6,122 @@ import (
 	"testing"
 )
 
+func TestNetworkAddress(t *testing.T) {
+	cases := []struct {
+		name      string
+		ip        string
+		prefixLen int
+		expect    string
+	}{
+		{name: "documentation /48", ip: "2001:db8::1", prefixLen: 48, expect: "2001:0db8:0000:0000:0000:0000:0000:0000"},
+		{name: "link-local /64", ip: "fe80::aabb:ccff:fedd:eeff", prefixLen: 64, expect: "fe80:0000:0000:0000:0000:0000:0000:0000"},
+		{name: "host route /128", ip: "::1", prefixLen: 128, expect: "0000:0000:0000:0000:0000:0000:0000:0001"},
+		{name: "default route /0", ip: "2001:db8::1", prefixLen: 0, expect: "0000:0000:0000:0000:0000:0000:0000:0000"},
+		{name: "IPv4-mapped /96", ip: "::ffff:192.0.2.1", prefixLen: 96, expect: "0000:0000:0000:0000:0000:ffff:0000:0000"},
+		{name: "ULA /48", ip: "fd12:3456:789a:1::1", prefixLen: 48, expect: "fd12:3456:789a:0000:0000:0000:0000:0000"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ip := net.ParseIP(tc.ip)
+			if ip == nil {
+				t.Fatalf("failed to parse IP: %s", tc.ip)
+			}
+			got := expandIPv6(networkAddress(ip.To16(), tc.prefixLen))
+			if got != tc.expect {
+				t.Errorf("expected %s, got %s", tc.expect, got)
+			}
+		})
+	}
+}
+
+func TestLastAddress(t *testing.T) {
+	cases := []struct {
+		name      string
+		ip        string
+		prefixLen int
+		expect    string
+	}{
+		{name: "documentation /48", ip: "2001:db8::1", prefixLen: 48, expect: "2001:0db8:0000:ffff:ffff:ffff:ffff:ffff"},
+		{name: "link-local /64", ip: "fe80::1", prefixLen: 64, expect: "fe80:0000:0000:0000:ffff:ffff:ffff:ffff"},
+		{name: "host route /128", ip: "::1", prefixLen: 128, expect: "0000:0000:0000:0000:0000:0000:0000:0001"},
+		{name: "default route /0", ip: "2001:db8::1", prefixLen: 0, expect: "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"},
+		{name: "ULA /48", ip: "fd12:3456:789a:1::1", prefixLen: 48, expect: "fd12:3456:789a:ffff:ffff:ffff:ffff:ffff"},
+		{name: "global /32", ip: "2001:db8:dead:beef::1", prefixLen: 32, expect: "2001:0db8:ffff:ffff:ffff:ffff:ffff:ffff"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ip := net.ParseIP(tc.ip)
+			if ip == nil {
+				t.Fatalf("failed to parse IP: %s", tc.ip)
+			}
+			got := expandIPv6(lastAddress(ip.To16(), tc.prefixLen))
+			if got != tc.expect {
+				t.Errorf("expected %s, got %s", tc.expect, got)
+			}
+		})
+	}
+}
+
+func TestHostSuffix(t *testing.T) {
+	cases := []struct {
+		name      string
+		ip        string
+		prefixLen int
+		expect    string
+	}{
+		{name: "documentation /48 host ::1", ip: "2001:db8::1", prefixLen: 48, expect: "::1"},
+		{name: "link-local /64 EUI-64", ip: "fe80::aabb:ccff:fedd:eeff", prefixLen: 64, expect: "::aabb:ccff:fedd:eeff"},
+		{name: "host route /128 has no host bits", ip: "::1", prefixLen: 128, expect: "::"},
+		{name: "network address has zero suffix", ip: "2001:db8::", prefixLen: 32, expect: "::"},
+		{name: "default route /0 suffix is full address", ip: "2001:db8::1", prefixLen: 0, expect: "2001:db8::1"},
+		{name: "mid-prefix host bits", ip: "fd00::1:2:3:4", prefixLen: 48, expect: "::1:2:3:4"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ip := net.ParseIP(tc.ip)
+			if ip == nil {
+				t.Fatalf("failed to parse IP: %s", tc.ip)
+			}
+			got := hostSuffix(ip.To16(), tc.prefixLen).String()
+			if got != tc.expect {
+				t.Errorf("expected %s, got %s", tc.expect, got)
+			}
+		})
+	}
+}
+
+func TestMixedNotation(t *testing.T) {
+	cases := []struct {
+		name   string
+		ip     string
+		expect string
+	}{
+		{name: "IPv4-mapped documentation", ip: "::ffff:192.0.2.1", expect: "::ffff:192.0.2.1"},
+		{name: "IPv4-mapped RFC 1918", ip: "::ffff:10.0.0.1", expect: "::ffff:10.0.0.1"},
+		{name: "IPv4-mapped all zeros", ip: "::ffff:0.0.0.0", expect: "::ffff:0.0.0.0"},
+		{name: "loopback is not IPv4-mapped", ip: "::1", expect: ""},
+		{name: "unspecified is not IPv4-in-IPv6", ip: "::", expect: ""},
+		{name: "global unicast is not IPv4-in-IPv6", ip: "2001:db8::1", expect: ""},
+		{name: "NAT64 is not IPv4-in-IPv6 mixed", ip: "64:ff9b::192.0.2.1", expect: ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ip := net.ParseIP(tc.ip)
+			if ip == nil {
+				t.Fatalf("failed to parse IP: %s", tc.ip)
+			}
+			got := mixedNotation(ip.To16())
+			if got != tc.expect {
+				t.Errorf("expected %q, got %q", tc.expect, got)
+			}
+		})
+	}
+}
+
 func TestIp6Arpa(t *testing.T) {
 	cases := []struct {
 		name         string
