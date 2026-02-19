@@ -6,8 +6,8 @@ echo "Testing IPv4 to IPv6 conversion..."
 echo "Testing IPv6 to IPv4 conversion..."
 ./ipv6utils -s 64:ff9b::c0a8:101
 
-#echo "Testing SLAAC MAC address decoding..."
-#./ipv6utils -m 3fff:0::0200:5eff:fe00:5325
+echo "Testing SLAAC MAC address decoding..."
+./ipv6utils -m 3fff:0::0200:5eff:fe00:5325
 
 echo "Testing subnet generation..."
 ./ipv6utils -p 3fff:0::/32 -n 40 -l 5
@@ -36,13 +36,28 @@ echo "Testing DNS PTR generation on /56 boundary..."
 echo "Testing DNS PTR generation..."
 ./ipv6utils -ip6.arpa 3fff:0:abcd::0211:22ff:fe33:4455 -n 0
 
-echo "Testing IPv6 format display..."
+echo "Testing IPv6 format display (no prefix)..."
 ./ipv6utils -f 2001:db8::1
 
-echo "Testing IPv6 format display with prefix..."
+echo "Testing IPv6 format display with /48 prefix (network range + host ID)..."
 ./ipv6utils -format 2001:db8::1/48
+
+echo "Testing IPv6 format display with /64 prefix..."
+./ipv6utils -f fe80::aabb:ccff:fedd:eeff/64
 
 echo "Testing IPv6 format display for loopback..."
 ./ipv6utils -f ::1
+
+echo "Testing IPv6 format display for IPv4-mapped (shows IPv4-in-IPv6 line)..."
+./ipv6utils -f ::ffff:192.0.2.1
+
+echo "Testing IPv6 format display for ULA with prefix..."
+./ipv6utils -f fd12:3456:789a::1/48
+
+echo "Testing version flag..."
+./ipv6utils -version
+
+echo "Testing version alias flag..."
+./ipv6utils -v
 
 echo "All tests completed."

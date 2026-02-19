@@ -35,13 +35,28 @@ go run ipv6utils.go -ip6.arpa 3fff:0:abcd::0211:22ff:fe33:4455 -n 56
 echo "Testing DNS PTR generation..."
 go run ipv6utils.go -ip6.arpa 3fff:0:abcd::0211:22ff:fe33:4455 -n 0
 
-echo "Testing IPv6 format display..."
+echo "Testing IPv6 format display (no prefix)..."
 go run ipv6utils.go -f 2001:db8::1
 
-echo "Testing IPv6 format display with prefix..."
+echo "Testing IPv6 format display with /48 prefix (network range + host ID)..."
 go run ipv6utils.go -format 2001:db8::1/48
+
+echo "Testing IPv6 format display with /64 prefix..."
+go run ipv6utils.go -f fe80::aabb:ccff:fedd:eeff/64
 
 echo "Testing IPv6 format display for loopback..."
 go run ipv6utils.go -f ::1
+
+echo "Testing IPv6 format display for IPv4-mapped (shows IPv4-in-IPv6 line)..."
+go run ipv6utils.go -f ::ffff:192.0.2.1
+
+echo "Testing IPv6 format display for ULA with prefix..."
+go run ipv6utils.go -f fd12:3456:789a::1/48
+
+echo "Testing version flag..."
+go run ipv6utils.go -version
+
+echo "Testing version alias flag..."
+go run ipv6utils.go -v
 
 echo "All tests completed."

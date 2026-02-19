@@ -17,6 +17,9 @@ import (
 	"strings"
 )
 
+// version is set at build time via -ldflags "-X main.version=<tag>".
+var version = "dev"
+
 // isNibbleAligned checks whether the prefix length is on a nibble boundary (multiple of 4).
 func isNibbleAligned(prefixLength int) bool {
 	return prefixLength%4 == 0
@@ -366,6 +369,54 @@ func classifyIPv6(ip net.IP) string {
 	return "Reserved / Unknown"
 }
 
+// networkAddress returns the network address (host bits zeroed) for the given IP and prefix length.
+func networkAddress(ip net.IP, prefixLen int) net.IP {
+	mask := net.CIDRMask(prefixLen, 128)
+	network := make(net.IP, net.IPv6len)
+	for i := range network {
+		network[i] = ip[i] & mask[i]
+	}
+	return network
+}
+
+// lastAddress returns the last address in the prefix (host bits all set to 1).
+func lastAddress(ip net.IP, prefixLen int) net.IP {
+	mask := net.CIDRMask(prefixLen, 128)
+	last := make(net.IP, net.IPv6len)
+	for i := range last {
+		last[i] = (ip[i] & mask[i]) | ^mask[i]
+	}
+	return last
+}
+
+// hostSuffix returns the interface identifier — the host portion of the address beyond the prefix.
+func hostSuffix(ip net.IP, prefixLen int) net.IP {
+	mask := net.CIDRMask(prefixLen, 128)
+	sfx := make(net.IP, net.IPv6len)
+	for i := range sfx {
+		sfx[i] = ip[i] & ^mask[i]
+	}
+	return sfx
+}
+
+// mixedNotation returns the IPv4-in-IPv6 mixed notation (e.g. ::ffff:192.0.2.1) for IPv4-mapped
+// addresses (::ffff:0:0/96). Returns an empty string for all other address types.
+// IPv4-compatible addresses (::x.x.x.x, deprecated per RFC 4291) are intentionally excluded
+// to avoid ambiguity with the loopback (::1) and unspecified (::) addresses.
+func mixedNotation(ip net.IP) string {
+	b := ip.To16()
+	// IPv4-mapped: ::ffff:x.x.x.x (bytes 0–9 zero, bytes 10–11 = 0xff)
+	for i := 0; i < 10; i++ {
+		if b[i] != 0 {
+			return ""
+		}
+	}
+	if b[10] == 0xff && b[11] == 0xff {
+		return fmt.Sprintf("::ffff:%d.%d.%d.%d", b[12], b[13], b[14], b[15])
+	}
+	return ""
+}
+
 // compressionPermutations returns all valid :: abbreviations for consecutive zero groups of length >= 2.
 func compressionPermutations(ip net.IP) []string {
 	b := ip.To16()
@@ -413,19 +464,21 @@ func compressionPermutations(ip net.IP) []string {
 }
 
 // formatIPv6 parses an IPv6 address and prints all format representations.
+// When a prefix length is supplied (e.g. 2001:db8::1/48), subnet-derived fields
+// (network address, host ID, and network range) are appended to the output.
 func formatIPv6(input string) {
 	ip, prefixLen, err := parseIPv6WithOptionalPrefix(input)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	suffix := ""
+	pfxSuffix := ""
 	if prefixLen >= 0 {
-		suffix = fmt.Sprintf("/%d", prefixLen)
+		pfxSuffix = fmt.Sprintf("/%d", prefixLen)
 	}
 
-	fmt.Printf("%-16s%s%s\n", "Expanded:", expandIPv6(ip), suffix)
-	fmt.Printf("%-16s%s%s\n", "Compressed:", compressIPv6(ip), suffix)
+	fmt.Printf("%-16s%s%s\n", "Expanded:", expandIPv6(ip), pfxSuffix)
+	fmt.Printf("%-16s%s%s\n", "Compressed:", compressIPv6(ip), pfxSuffix)
 	fmt.Printf("%-16s%s\n", "Uppercase:", uppercaseIPv6(ip))
 	fmt.Printf("%-16s%s\n", "URL format:", urlIPv6(ip))
 	fmt.Printf("%-16s%s\n", "Dotted:", dottedIPv6(ip))
@@ -437,6 +490,21 @@ func formatIPv6(input string) {
 	}
 	fmt.Printf("%-16s%s\n", "Reverse DNS:", arpa)
 	fmt.Printf("%-16s%s\n", "Address Type:", classifyIPv6(ip))
+
+	if mixed := mixedNotation(ip); mixed != "" {
+		fmt.Printf("%-16s%s\n", "IPv4-in-IPv6:", mixed)
+	}
+
+	if prefixLen >= 0 {
+		netAddr := networkAddress(ip, prefixLen)
+		lastAddr := lastAddress(ip, prefixLen)
+		hostID := hostSuffix(ip, prefixLen)
+		fmt.Println()
+		fmt.Printf("%-16s%s/%d\n", "Network:", expandIPv6(netAddr), prefixLen)
+		fmt.Printf("%-16s%s/%d\n", "Host ID:", compressIPv6(hostID), prefixLen)
+		fmt.Printf("%-16s%s -\n", "Network range:", expandIPv6(netAddr))
+		fmt.Printf("%-16s%s\n", "", expandIPv6(lastAddr))
+	}
 
 	perms := compressionPermutations(ip)
 	if len(perms) > 0 {
@@ -460,6 +528,7 @@ func main() {
 	countOnly := flag.Bool("count", false, "Display only the number of generated prefixes. (alias: -c)")
 	ip6arpa := flag.String("ip6.arpa", "", "Generate a reverse ip6.arpa name for an IPv6 address. Uses -new-prefix-length as zone context.")
 	format := flag.String("format", "", "Display all format representations of an IPv6 address. (alias: -f)")
+	showVersion := flag.Bool("version", false, "Print version and exit. (alias: -v)")
 
 	flag.StringVar(prefix, "p", "64:ff9b::", "Alias for -prefix")
 	flag.IntVar(newPrefixLength, "n", 40, "Alias for -new-prefix-length")
@@ -467,8 +536,14 @@ func main() {
 	flag.BoolVar(countOnly, "c", false, "Alias for -count")
 	flag.StringVar(linkLocal, "a", "", "Alias for -local")
 	flag.StringVar(format, "f", "", "Alias for -format")
+	flag.BoolVar(showVersion, "v", false, "Alias for -version")
 
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("ipv6utils %s\n", version)
+		return
+	}
 
 	if flag.NFlag() == 0 {
 		fmt.Println("Usage:")
