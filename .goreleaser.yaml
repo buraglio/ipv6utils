@@ -1,0 +1,62 @@
+version: 2
+
+project_name: ipv6utils
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+    # Exact platform set from the Makefile.
+    # MIPS targets include the softfloat variant, matching the Go default.
+    targets:
+      - linux_386
+      - linux_amd64
+      - linux_arm_6
+      - linux_arm64
+      - linux_mips_softfloat
+      - linux_mipsle_softfloat
+      - linux_mips64
+      - linux_mips64le
+      - linux_ppc64le
+      - linux_riscv64
+      - linux_s390x
+      - darwin_amd64
+      - darwin_arm64
+      - windows_386
+      - windows_amd64
+      - windows_arm64
+      - freebsd_amd64
+      - freebsd_arm64
+      - openbsd_amd64
+      - openbsd_arm64
+      - netbsd_amd64
+      - netbsd_arm64
+      - dragonfly_amd64
+      - solaris_amd64
+
+archives:
+  - formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "Merge pull request"
+      - "Merge branch"
